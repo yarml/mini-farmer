@@ -12,8 +12,9 @@ use bevy::{
 };
 use bevy_ecs_ldtk::LdtkPlugin;
 use plugins::{
-  camera::CameraPlugin, controls::ControlsPlugin, debug::DebugPlugin,
-  housing::HousingPlugin, player::PlayerPlugin, world::WorldPlugin,
+  camera::CameraPlugin, controls::ControlsPlugin, gen::WorldGenPlugin,
+  grass::GrassPlugin, housing::HousingPlugin, hud::HudPlugin,
+  player::PlayerPlugin, world::WorldPlugin,
 };
 
 fn main() -> AppExit {
@@ -29,14 +30,17 @@ fn main() -> AppExit {
         ..default()
       },
     ))
-    .add_plugins(DebugPlugin)
+    //.add_plugins(DebugPlugin)
     .add_plugins(LdtkPlugin)
     .add_plugins(PhysicsPlugins::default().with_length_unit(16.0))
     .add_plugins(PlayerPlugin)
     .add_plugins(ControlsPlugin)
     .add_plugins(CameraPlugin)
     .add_plugins(WorldPlugin)
+    .add_plugins(GrassPlugin)
     .add_plugins(HousingPlugin)
+    .add_plugins(WorldGenPlugin)
+    .add_plugins(HudPlugin)
     .insert_resource(Gravity(Vec2::ZERO))
     .run()
 }

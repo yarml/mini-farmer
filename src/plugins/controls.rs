@@ -1,7 +1,5 @@
-use avian2d::{
-  math::Scalar,
-  prelude::{Collider, LinearDamping, LinearVelocity, Mass, RigidBody},
-};
+use crate::components::physics::{Acceleration, PhysicsBundle};
+use avian2d::prelude::LinearVelocity;
 use bevy::{
   app::{App, Plugin, Update},
   input::ButtonInput,
@@ -13,23 +11,10 @@ use bevy::{
 #[derive(Default, Component)]
 pub struct PhysicsControls;
 
-#[derive(Default, Component)]
-pub struct Acceleration(pub Scalar);
-
-#[derive(Default, Bundle)]
-pub struct MovementBundle {
-  pub acceleration: Acceleration,
-  pub velocity: LinearVelocity,
-  pub damping: LinearDamping,
-  pub mass: Mass,
-}
-
 #[derive(Default, Bundle)]
 pub struct PhysicsControlsBundle {
   pub controls: PhysicsControls,
-  pub body: RigidBody,
-  pub collider: Collider,
-  pub movement: MovementBundle,
+  pub physics: PhysicsBundle,
 }
 
 fn input(
