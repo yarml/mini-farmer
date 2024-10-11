@@ -5,8 +5,9 @@ use avian2d::prelude::{
 };
 use bevy::{
   app::{App, Plugin, Update},
-  prelude::{Bundle, Component, Query, Transform, With},
-  utils::default,
+  math::Vec3,
+  prelude::{default, Bundle, Component, Query, Transform, With},
+  sprite::SpriteBundle,
 };
 use bevy_ecs_ldtk::{app::LdtkEntityAppExt, LdtkEntity, LdtkSpriteSheetBundle};
 
@@ -24,8 +25,20 @@ struct PlayerBundle {
 impl Default for PlayerBundle {
   fn default() -> Self {
     Self {
-      marker: Default::default(),
-      sprite: Default::default(),
+      marker: default(),
+      sprite: LdtkSpriteSheetBundle {
+        sprite_bundle: SpriteBundle {
+          transform: Transform {
+            translation: Vec3 {
+              z: 10.,
+              ..default()
+            },
+            ..default()
+          },
+          ..default()
+        },
+        texture_atlas: default(),
+      },
       controls: PhysicsControlsBundle {
         physics: PhysicsBundle {
           body: RigidBody::Dynamic,

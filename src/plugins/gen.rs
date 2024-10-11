@@ -19,7 +19,9 @@ impl WorldGen {
   }
 
   pub fn at(&self, x: i32, y: i32) -> f32 {
-    (self.perlin.get([x as f64 / 256., y as f64 / 256.]) as f32).abs() * 100.
+    (self.perlin.get([x as f64 / 256., y as f64 / 256.]) as f32)
+      .tanh()
+      .abs()
   }
 }
 
