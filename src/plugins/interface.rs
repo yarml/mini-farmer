@@ -1,6 +1,7 @@
 use super::{
   camera::MainCamera,
-  grass::{Arability, Farmland, Grass, GrassIndex},
+  grass::{Arability, Grass, GrassIndex},
+  tools::Tool,
 };
 use bevy::{
   app::{App, Plugin, Startup, Update},
@@ -12,13 +13,14 @@ use bevy::{
   input::ButtonInput,
   math::Vec2,
   prelude::{
-    default, Camera, Commands, Component, Entity, GlobalTransform, MouseButton,
-    Query, Res, ResMut, Resource, TextBundle, Transform, Visibility, With,
-    Without,
+    default, BuildChildren, Camera, Commands, Component, Entity,
+    GlobalTransform, KeyCode, MouseButton, NodeBundle, Query, Res, ResMut,
+    Resource, TextBundle, Transform, Visibility, With,
   },
   sprite::{Sprite, SpriteBundle},
   text::{Text, TextSection, TextStyle},
   time::Time,
+  ui::{Display, FlexDirection, JustifyContent, Style, UiImage, UiRect, Val},
   window::{PrimaryWindow, Window},
 };
 use bevy_ecs_ldtk::GridCoords;
@@ -33,28 +35,59 @@ pub struct Interface {
 struct ArabilityText;
 
 #[derive(Component)]
+struct ToolIcon;
+
+#[derive(Component)]
 struct Selector;
 
 fn setup(mut commands: Commands, server: Res<AssetServer>) {
-  commands.spawn((
-    TextBundle::from_sections([
-      TextSection::new(
-        "Arability: ",
-        TextStyle {
-          font: server.load("pixelify.ttf"),
-          font_size: 60.0,
-          color: BLACK.into(),
+  commands
+    .spawn(NodeBundle {
+      style: Style {
+        width: Val::Percent(100.),
+        height: Val::Percent(100.),
+        justify_content: JustifyContent::SpaceBetween,
+        display: Display::Flex,
+        padding: UiRect::all(Val::Percent(1.)),
+        flex_direction: FlexDirection::Column,
+        ..default()
+      },
+      ..default()
+    })
+    .with_children(|root| {
+      root.spawn((
+        TextBundle::from_sections([
+          TextSection::new(
+            "Arability: ",
+            TextStyle {
+              font: server.load("pixelify.ttf"),
+              font_size: 60.0,
+              color: BLACK.into(),
+              ..default()
+            },
+          ),
+          TextSection::from_style(TextStyle {
+            font: server.load("pixelify.ttf"),
+            font_size: 60.0,
+            color: RED.into(),
+          }),
+        ]),
+        ArabilityText,
+      ));
+
+      root.spawn((
+        NodeBundle {
+          style: Style {
+            width: Val::Px(48.),
+            height: Val::Px(48.),
+            ..default()
+          },
           ..default()
         },
-      ),
-      TextSection::from_style(TextStyle {
-        font: server.load("pixelify.ttf"),
-        font_size: 60.0,
-        color: RED.into(),
-      }),
-    ]),
-    ArabilityText,
-  ));
+        UiImage::new(server.load("ui/cultivate.png")),
+        ToolIcon,
+      ));
+    });
 
   commands.spawn((
     Selector,
@@ -123,41 +156,58 @@ fn update_cursor(
   }
 }
 
-fn cultivate(
+fn update_tool() {}
+
+fn tool_activate(
+  tool: Res<Tool>,
   interface: Res<Interface>,
   grass_index: Res<GrassIndex>,
   mouse: Res<ButtonInput<MouseButton>>,
-  q_set: Query<Entity, (With<Arability>, Without<Farmland>)>,
   mut commands: Commands,
 ) {
   if mouse.pressed(MouseButton::Left) {
-    if let Some(mut grass_entity) = interface
+    if let Some(grass_entity) = interface
       .selected_grass(&grass_index)
-      .map(|selected_grass| q_set.get(selected_grass).ok())
-      .flatten()
       .map(|selected_grass| commands.entity(selected_grass))
     {
-      grass_entity.insert(Farmland);
+      tool.activate(grass_entity);
     }
   }
 }
 
-fn uncultivate(
+fn tool_deactivate(
+  tool: Res<Tool>,
   interface: Res<Interface>,
   grass_index: Res<GrassIndex>,
   mouse: Res<ButtonInput<MouseButton>>,
-  q_set: Query<Entity, (With<Arability>, With<Farmland>)>,
   mut commands: Commands,
 ) {
   if mouse.pressed(MouseButton::Right) {
-    if let Some(mut grass_entity) = interface
+    if let Some(grass_entity) = interface
       .selected_grass(&grass_index)
-      .map(|selected_grass| q_set.get(selected_grass).ok())
-      .flatten()
       .map(|selected_grass| commands.entity(selected_grass))
     {
-      grass_entity.remove::<Farmland>();
+      tool.deactivate(grass_entity);
     }
+  }
+}
+
+fn tool_cycle(
+  mut tool: ResMut<Tool>,
+  server: Res<AssetServer>,
+  mut icon: Query<&mut UiImage, With<ToolIcon>>,
+  kbd: Res<ButtonInput<KeyCode>>,
+) {
+  if kbd.just_pressed(KeyCode::Tab) {
+    if kbd.pressed(KeyCode::ShiftLeft) {
+      tool.rev_cycle();
+    } else {
+      tool.cycle();
+    }
+    let texture = tool.texture(&server);
+    icon
+      .par_iter_mut()
+      .for_each(move |mut ui_img| ui_img.texture = texture.clone());
   }
 }
 
@@ -174,8 +224,10 @@ impl Plugin for InterfacePlugin {
           update_cursor,
           update_arability,
           update_selector,
-          cultivate,
-          uncultivate,
+          update_tool,
+          tool_activate,
+          tool_deactivate,
+          tool_cycle,
         ),
       );
   }

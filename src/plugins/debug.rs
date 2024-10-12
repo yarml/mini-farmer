@@ -5,6 +5,7 @@ use bevy::{
   input::ButtonInput,
   prelude::{KeyCode, Res, ResMut},
 };
+use bevy_inspector_egui::quick::WorldInspectorPlugin;
 
 fn toggle_debug_ui(
   input: Res<ButtonInput<KeyCode>>,
@@ -22,6 +23,7 @@ impl Plugin for DebugPlugin {
     app
       .add_plugins(DebugUiPlugin)
       .add_plugins(PhysicsDebugPlugin::default())
+      .add_plugins(WorldInspectorPlugin::new())
       .add_systems(Update, toggle_debug_ui);
   }
 }
