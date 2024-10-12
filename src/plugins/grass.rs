@@ -1,9 +1,9 @@
 use super::gen::WorldGen;
 use bevy::{
-  app::{App, Plugin, Update},
+  app::{App, Plugin, PostUpdate, Update},
   prelude::{
-    Added, Bundle, Commands, Component, Entity, Query, Res, ResMut, Resource,
-    With, Without,
+    Added, Bundle, Commands, Component, Entity, Query, RemovedComponents, Res,
+    ResMut, Resource, With, Without,
   },
 };
 use bevy_ecs_ldtk::{app::LdtkIntCellAppExt, GridCoords, LdtkIntCell};
@@ -43,10 +43,24 @@ fn gen(
   }
 }
 
-fn apply_farmland_sprite(
+fn apply_farmland_texture(
   mut q_grass: Query<&mut TileTextureIndex, (With<Arability>, Added<Farmland>)>,
 ) {
   q_grass.par_iter_mut().for_each(|mut index| index.0 += 6);
+}
+
+fn apply_grass_texture(
+  mut removed: RemovedComponents<Farmland>,
+  mut q_grass: Query<
+    &mut TileTextureIndex,
+    (With<Arability>, Without<Farmland>),
+  >,
+) {
+  for entity in removed.read() {
+    if let Some(mut index) = q_grass.get_mut(entity).ok() {
+      index.0 -= 6;
+    }
+  }
 }
 
 pub struct GrassPlugin;
@@ -55,7 +69,8 @@ impl Plugin for GrassPlugin {
   fn build(&self, app: &mut App) {
     app
       .register_ldtk_int_cell_for_layer::<GrassBundle>("worldmap", 2)
-      .add_systems(Update, (gen, apply_farmland_sprite))
+      .add_systems(Update, (gen, apply_farmland_texture))
+      .add_systems(PostUpdate, apply_grass_texture)
       .insert_resource(GrassIndex::new());
   }
 }

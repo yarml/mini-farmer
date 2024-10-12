@@ -9,12 +9,12 @@ use bevy::{
     palettes::css::{BLACK, RED},
     Alpha,
   },
-  input::keyboard::KeyboardInput,
+  input::ButtonInput,
   math::Vec2,
   prelude::{
-    default, Camera, Commands, Component, Entity, EventReader, GlobalTransform,
-    KeyCode, Query, Res, ResMut, Resource, TextBundle, Transform, Visibility,
-    With,
+    default, Camera, Commands, Component, Entity, GlobalTransform, MouseButton,
+    Query, Res, ResMut, Resource, TextBundle, Transform, Visibility, With,
+    Without,
   },
   sprite::{Sprite, SpriteBundle},
   text::{Text, TextSection, TextStyle},
@@ -126,17 +126,37 @@ fn update_cursor(
 fn cultivate(
   interface: Res<Interface>,
   grass_index: Res<GrassIndex>,
+  mouse: Res<ButtonInput<MouseButton>>,
+  q_set: Query<Entity, (With<Arability>, Without<Farmland>)>,
   mut commands: Commands,
-  mut kbd_evr: EventReader<KeyboardInput>,
 ) {
-  for ev in kbd_evr.read() {
-    if ev.state.is_pressed() && ev.key_code == KeyCode::Space {
-      if let Some(mut grass_entity) = interface
-        .selected_grass(&grass_index)
-        .map(|selected_grass| commands.entity(selected_grass))
-      {
-        grass_entity.insert(Farmland);
-      }
+  if mouse.pressed(MouseButton::Left) {
+    if let Some(mut grass_entity) = interface
+      .selected_grass(&grass_index)
+      .map(|selected_grass| q_set.get(selected_grass).ok())
+      .flatten()
+      .map(|selected_grass| commands.entity(selected_grass))
+    {
+      grass_entity.insert(Farmland);
+    }
+  }
+}
+
+fn uncultivate(
+  interface: Res<Interface>,
+  grass_index: Res<GrassIndex>,
+  mouse: Res<ButtonInput<MouseButton>>,
+  q_set: Query<Entity, (With<Arability>, With<Farmland>)>,
+  mut commands: Commands,
+) {
+  if mouse.pressed(MouseButton::Right) {
+    if let Some(mut grass_entity) = interface
+      .selected_grass(&grass_index)
+      .map(|selected_grass| q_set.get(selected_grass).ok())
+      .flatten()
+      .map(|selected_grass| commands.entity(selected_grass))
+    {
+      grass_entity.remove::<Farmland>();
     }
   }
 }
@@ -150,7 +170,13 @@ impl Plugin for InterfacePlugin {
       .add_systems(Startup, setup)
       .add_systems(
         Update,
-        (update_cursor, update_arability, update_selector, cultivate),
+        (
+          update_cursor,
+          update_arability,
+          update_selector,
+          cultivate,
+          uncultivate,
+        ),
       );
   }
 }
