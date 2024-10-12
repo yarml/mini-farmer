@@ -6,4 +6,4 @@ pub mod grass;
 pub mod housing;
 pub mod player;
 pub mod world;
-pub mod hud;
+pub mod interface;
