@@ -11,7 +11,6 @@ use super::grass::Farmland;
 pub enum Tool {
   Cultivate,
   Plant,
-  Clean,
   Water,
   Harvest,
 }
@@ -21,7 +20,6 @@ impl Tool {
     match self {
       Tool::Cultivate => "cultivate",
       Tool::Plant => "plant",
-      Tool::Clean => "clean",
       Tool::Water => "water",
       Tool::Harvest => "harvest",
     }
@@ -34,8 +32,7 @@ impl Tool {
   pub fn cycle(&mut self) {
     *self = match self {
       Tool::Cultivate => Tool::Plant,
-      Tool::Plant => Tool::Clean,
-      Tool::Clean => Tool::Water,
+      Tool::Plant => Tool::Water,
       Tool::Water => Tool::Harvest,
       Tool::Harvest => Tool::Cultivate,
     };
@@ -44,8 +41,7 @@ impl Tool {
     *self = match self {
       Tool::Cultivate => Tool::Harvest,
       Tool::Plant => Tool::Cultivate,
-      Tool::Clean => Tool::Plant,
-      Tool::Water => Tool::Clean,
+      Tool::Water => Tool::Plant,
       Tool::Harvest => Tool::Water,
     };
   }
@@ -54,7 +50,6 @@ impl Tool {
     match self {
       Tool::Cultivate => target.insert(Farmland),
       Tool::Plant => todo!(),
-      Tool::Clean => todo!(),
       Tool::Water => todo!(),
       Tool::Harvest => todo!(),
     };
@@ -64,7 +59,6 @@ impl Tool {
     match self {
       Tool::Cultivate => target.remove::<Farmland>(),
       Tool::Plant => todo!(),
-      Tool::Clean => todo!(),
       Tool::Water => todo!(),
       Tool::Harvest => todo!(),
     };
