@@ -19,7 +19,7 @@ use bevy::{
 };
 use bevy_ecs_ldtk::{app::LdtkEntityAppExt, LdtkEntity, LdtkSpriteSheetBundle};
 
-const ANIM_FPS: f32 = 16.;
+const ANIM_FPS: f32 = 12.;
 
 #[derive(Default, Component)]
 pub struct Player;

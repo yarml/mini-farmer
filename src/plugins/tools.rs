@@ -5,7 +5,7 @@ use bevy::{
   prelude::{Image, Resource},
 };
 
-use super::grass::Farmland;
+use super::grass::{FarmStage, Farmland, Watered};
 
 #[derive(Resource)]
 pub enum Tool {
@@ -48,18 +48,20 @@ impl Tool {
 
   pub fn activate(&self, mut target: EntityCommands) {
     match self {
-      Tool::Cultivate => target.insert(Farmland),
+      Tool::Cultivate => target.insert(Farmland(FarmStage::Empty)),
       Tool::Plant => todo!(),
-      Tool::Water => todo!(),
+      Tool::Water => target.insert(Watered),
       Tool::Harvest => todo!(),
     };
   }
 
   pub fn deactivate(&self, mut target: EntityCommands) {
     match self {
-      Tool::Cultivate => target.remove::<Farmland>(),
+      Tool::Cultivate => {
+        target.remove::<Farmland>();
+      }
       Tool::Plant => todo!(),
-      Tool::Water => todo!(),
+      Tool::Water => {}
       Tool::Harvest => todo!(),
     };
   }

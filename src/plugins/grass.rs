@@ -1,9 +1,9 @@
 use super::gen::WorldGen;
 use bevy::{
-  app::{App, Plugin, PostUpdate, Update},
+  app::{App, Plugin, Update},
   prelude::{
-    Added, Bundle, Commands, Component, Entity, Query, RemovedComponents, Res,
-    ResMut, Resource, With, Without,
+    Bundle, Commands, Component, Entity, ParallelCommands, Query, Res, ResMut,
+    Resource, With, Without,
   },
 };
 use bevy_ecs_ldtk::{app::LdtkIntCellAppExt, GridCoords, LdtkIntCell};
@@ -21,8 +21,18 @@ pub struct Grass;
 #[derive(Component)]
 pub struct Arability(pub f32);
 
+pub enum FarmStage {
+  Empty,
+  Sprout,
+  Vegetative,
+  Ripening,
+}
+
 #[derive(Component)]
-pub struct Farmland;
+pub struct Farmland(pub FarmStage);
+
+#[derive(Component)]
+pub struct Watered;
 
 #[derive(Default, Bundle, LdtkIntCell)]
 struct GrassBundle {
@@ -43,24 +53,51 @@ fn gen(
   }
 }
 
-fn apply_farmland_texture(
-  mut q_grass: Query<&mut TileTextureIndex, (With<Arability>, Added<Farmland>)>,
-) {
-  q_grass.par_iter_mut().for_each(|mut index| index.0 += 6);
-}
-
-fn apply_grass_texture(
-  mut removed: RemovedComponents<Farmland>,
+fn apply_texture(
   mut q_grass: Query<
-    &mut TileTextureIndex,
-    (With<Arability>, Without<Farmland>),
+    (
+      Entity,
+      &mut TileTextureIndex,
+      Option<&Farmland>,
+      Option<&Watered>,
+    ),
+    With<Arability>,
   >,
+  par_commands: ParallelCommands,
 ) {
-  for entity in removed.read() {
-    if let Some(mut index) = q_grass.get_mut(entity).ok() {
-      index.0 -= 6;
-    }
-  }
+  q_grass
+    .par_iter_mut()
+    .for_each(|(entity, mut index, farmland, watered)| {
+      index.0 = if let Some(Farmland(stage)) = farmland {
+        if index.0 != 31 && index.0 < 50 {
+          par_commands.command_scope(|mut commands| {
+            commands
+              .entity(entity)
+              .remove::<Farmland>()
+              .remove::<Watered>();
+          });
+          index.0
+        } else {
+          let base = match stage {
+            FarmStage::Empty => 80,
+            FarmStage::Sprout => 120,
+            FarmStage::Vegetative => 160,
+            FarmStage::Ripening => 160,
+          };
+          if watered.is_some() {
+            base + 5
+          } else {
+            base
+          }
+        }
+      } else {
+        if index.0 >= 50 {
+          31
+        } else {
+          index.0
+        }
+      };
+    });
 }
 
 pub struct GrassPlugin;
@@ -69,8 +106,7 @@ impl Plugin for GrassPlugin {
   fn build(&self, app: &mut App) {
     app
       .register_ldtk_int_cell_for_layer::<GrassBundle>("worldmap", 2)
-      .add_systems(Update, (gen, apply_farmland_texture))
-      .add_systems(PostUpdate, apply_grass_texture)
+      .add_systems(Update, (gen, apply_texture))
       .insert_resource(GrassIndex::new());
   }
 }
@@ -83,5 +119,16 @@ impl GrassIndex {
   }
   pub fn get(&self, GridCoords { x, y }: GridCoords) -> Option<Entity> {
     self.index.get(&(x, y)).copied()
+  }
+}
+
+impl FarmStage {
+  pub fn next(&mut self) {
+    *self = match self {
+      FarmStage::Empty => FarmStage::Empty,
+      FarmStage::Sprout => FarmStage::Vegetative,
+      FarmStage::Vegetative => FarmStage::Ripening,
+      FarmStage::Ripening => FarmStage::Ripening,
+    }
   }
 }

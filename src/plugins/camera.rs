@@ -1,13 +1,20 @@
-use super::player::Player;
+use std::f32::consts::PI;
+
+use super::{daycycle::DayCycle, player::Player};
 use bevy::{
   app::{App, Plugin, Startup, Update},
+  color::Color,
   math::Vec3,
   prelude::{
     Camera2d, Camera2dBundle, Commands, Component, Query, Res, Transform, With,
     Without,
   },
   time::Time,
+  utils::default,
 };
+use bevy_light_2d::light::AmbientLight2d;
+
+const SUNSET_COLOR: Color = Color::linear_rgb(1., 0.654901961, 0.223529412);
 
 #[derive(Component)]
 pub struct MainCamera;
@@ -17,17 +24,31 @@ fn setup_camera(mut commands: Commands) {
   camera.projection.scale = 0.3;
   camera.transform.translation.x += 1280.0 / 4.0;
   camera.transform.translation.y += 720.0 / 4.0;
-  commands.spawn((MainCamera, camera));
+  commands.spawn((
+    MainCamera,
+    camera,
+    AmbientLight2d {
+      brightness: 0.01,
+      ..default()
+    },
+  ));
 }
 
 fn update(
-  mut camera: Query<&mut Transform, (With<Camera2d>, Without<Player>)>,
-  player: Query<&Transform, With<Player>>,
   time: Res<Time>,
+  day: Res<DayCycle>,
+  mut camera: Query<
+    (&mut Transform, &mut AmbientLight2d),
+    (With<Camera2d>, Without<Player>),
+  >,
+  player: Query<&Transform, With<Player>>,
 ) {
-  let Ok(mut camera) = camera.get_single_mut() else {
+  let Ok((mut camera, mut sunlight)) = camera.get_single_mut() else {
     return;
   };
+
+  sunlight.brightness = sunlight_brightness(day.daytime);
+
   let Ok(player) = player.get_single() else {
     return;
   };
@@ -48,4 +69,14 @@ impl Plugin for CameraPlugin {
       .add_systems(Startup, setup_camera)
       .add_systems(Update, update);
   }
+}
+
+const A: f32 = 0.5;
+const P: f32 = -0.643501108793;
+const C: f32 = A;
+const F: f32 = 1.14;
+
+fn sunlight_brightness(daytime: f32) -> f32 {
+  let t = daytime;
+  A * f32::sin(2. * PI * F * t + P) + C
 }
