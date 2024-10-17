@@ -66,15 +66,6 @@ impl Tool {
       Tool::Harvest => todo!(),
     };
   }
-
-  pub fn deactivate(&self, mut target: EntityCommands) {
-    match self {
-      Tool::Cultivate => {
-        target.remove::<Farmland>();
-      }
-      _ => {}
-    };
-  }
 }
 
 pub struct ToolsPlugin;

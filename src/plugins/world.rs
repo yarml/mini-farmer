@@ -16,7 +16,7 @@ use bevy_ecs_ldtk::{
 
 use super::{grass::Grass, housing::House, road::Road};
 
-#[derive(Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum TileType {
   Grass,
   Housing,

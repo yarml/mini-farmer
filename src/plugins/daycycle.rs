@@ -51,18 +51,23 @@ impl DayCycle {
     self.daytime += delta_gt;
 
     if self.mode == TimeMode::Day && self.daytime > 0.5 {
+      info!("Switch to pending mode");
       self.daytime = 0.5;
       self.mode = TimeMode::Pending;
-      info!("Switch to pending mode");
     }
 
     if self.mode == TimeMode::Night && self.daytime > 1. {
+      info!("Daytime again");
       self.daytime = 0.;
       self.mode = TimeMode::Day;
       self.day += 1;
       return true;
     }
     false
+  }
+  pub fn sleep(&mut self) {
+    info!("Sleeping");
+    self.mode = TimeMode::Night;
   }
 }
 

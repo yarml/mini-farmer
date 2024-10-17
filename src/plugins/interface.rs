@@ -1,6 +1,6 @@
 use super::{
   camera::MainCamera,
-  grass::{Arability, Farmland, Grass},
+  grass::{Arability, Grass},
   tools::Tool,
   world::{TileType, WorldIndex},
 };
@@ -15,8 +15,8 @@ use bevy::{
   math::Vec2,
   prelude::{
     default, BuildChildren, Camera, Commands, Component, Entity,
-    GlobalTransform, KeyCode, MouseButton, NodeBundle, Query, Res, ResMut,
-    Resource, TextBundle, Transform, Visibility, With,
+    GlobalTransform, KeyCode, NodeBundle, Query, Res, ResMut, Resource,
+    TextBundle, Transform, Visibility, With,
   },
   sprite::{Sprite, SpriteBundle},
   text::{Text, TextSection, TextStyle},
@@ -157,49 +157,6 @@ fn update_cursor(
   }
 }
 
-fn tool_activate(
-  tool: Res<Tool>,
-  interface: Res<Interface>,
-  mouse: Res<ButtonInput<MouseButton>>,
-  world_index: Res<WorldIndex>,
-  mut q_grass: Query<Option<&mut Farmland>, With<Grass>>,
-  mut commands: Commands,
-) {
-  if mouse.pressed(MouseButton::Left) {
-    if let Some((commands, farmland)) = interface
-      .selected_grass(&world_index)
-      .map(|selected_grass| {
-        (
-          commands.entity(selected_grass),
-          q_grass.get_mut(selected_grass).ok(),
-        )
-      })
-    {
-      let Some(farmland) = farmland else {
-        return;
-      };
-      tool.activate(commands, farmland);
-    }
-  }
-}
-
-fn tool_deactivate(
-  tool: Res<Tool>,
-  interface: Res<Interface>,
-  mouse: Res<ButtonInput<MouseButton>>,
-  world_index: Res<WorldIndex>,
-  mut commands: Commands,
-) {
-  if mouse.pressed(MouseButton::Right) {
-    if let Some(commands) = interface
-      .selected_grass(&world_index)
-      .map(|selected_grass| commands.entity(selected_grass))
-    {
-      tool.deactivate(commands);
-    }
-  }
-}
-
 fn tool_cycle(
   mut tool: ResMut<Tool>,
   server: Res<AssetServer>,
@@ -228,14 +185,7 @@ impl Plugin for InterfacePlugin {
       .add_systems(Startup, setup)
       .add_systems(
         Update,
-        (
-          update_cursor,
-          update_arability,
-          update_selector,
-          tool_activate,
-          tool_deactivate,
-          tool_cycle,
-        ),
+        (update_cursor, update_arability, update_selector, tool_cycle),
       );
   }
 }
@@ -257,5 +207,9 @@ impl Interface {
       .get(curs_coords)
       .filter(|(_, typ)| *typ == TileType::Grass)
       .map(|(ent, _)| ent)
+  }
+  pub fn selected_tile(&self, world_index: &WorldIndex) -> Option<TileType> {
+    let curs_coords = self.cursor_grid_coords();
+    world_index.get(curs_coords).map(|(_, typ)| typ)
   }
 }

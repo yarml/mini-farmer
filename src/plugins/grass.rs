@@ -1,9 +1,15 @@
-use super::{gen::WorldGen, world::TileType};
+use super::{
+  gen::WorldGen,
+  interface::Interface,
+  tools::Tool,
+  world::{TileType, WorldIndex},
+};
 use bevy::{
   app::{App, Plugin, Update},
+  input::ButtonInput,
   prelude::{
-    Bundle, Commands, Component, Entity, ParallelCommands, Query, Res, With,
-    Without,
+    Bundle, Commands, Component, Entity, MouseButton, ParallelCommands, Query,
+    Res, With, Without,
   },
 };
 use bevy_ecs_ldtk::{app::LdtkIntCellAppExt, GridCoords, LdtkIntCell};
@@ -88,6 +94,32 @@ fn apply_texture(
     });
 }
 
+fn use_tool(
+  tool: Res<Tool>,
+  interface: Res<Interface>,
+  mouse: Res<ButtonInput<MouseButton>>,
+  world_index: Res<WorldIndex>,
+  mut q_grass: Query<Option<&mut Farmland>, With<Grass>>,
+  mut commands: Commands,
+) {
+  if mouse.pressed(MouseButton::Left) {
+    if let Some((commands, farmland)) = interface
+      .selected_grass(&world_index)
+      .map(|selected_grass| {
+        (
+          commands.entity(selected_grass),
+          q_grass.get_mut(selected_grass).ok(),
+        )
+      })
+    {
+      let Some(farmland) = farmland else {
+        return;
+      };
+      tool.activate(commands, farmland);
+    }
+  }
+}
+
 pub struct GrassPlugin;
 
 impl Plugin for GrassPlugin {
@@ -97,7 +129,7 @@ impl Plugin for GrassPlugin {
         "worldmap",
         TileType::Grass.index(),
       )
-      .add_systems(Update, (gen, apply_texture));
+      .add_systems(Update, (gen, apply_texture, use_tool));
   }
 }
 
