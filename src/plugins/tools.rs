@@ -2,7 +2,7 @@ use bevy::{
   app::{App, Plugin},
   asset::{AssetServer, Handle},
   ecs::system::EntityCommands,
-  prelude::{Image, Resource},
+  prelude::{Image, Mut, Resource},
 };
 
 use super::grass::{FarmStage, Farmland, Watered};
@@ -46,11 +46,23 @@ impl Tool {
     };
   }
 
-  pub fn activate(&self, mut target: EntityCommands) {
+  pub fn activate(
+    &self,
+    mut target: EntityCommands,
+    farmland: Option<Mut<'_, Farmland>>,
+  ) {
     match self {
-      Tool::Cultivate => target.insert(Farmland(FarmStage::Empty)),
-      Tool::Plant => todo!(),
-      Tool::Water => target.insert(Watered),
+      Tool::Cultivate => {
+        target.insert(Farmland(FarmStage::Empty));
+      }
+      Tool::Plant => {
+        if let Some(mut farmland) = farmland {
+          farmland.0.plant();
+        }
+      }
+      Tool::Water => {
+        target.insert(Watered);
+      }
       Tool::Harvest => todo!(),
     };
   }
@@ -60,9 +72,7 @@ impl Tool {
       Tool::Cultivate => {
         target.remove::<Farmland>();
       }
-      Tool::Plant => todo!(),
-      Tool::Water => {}
-      Tool::Harvest => todo!(),
+      _ => {}
     };
   }
 }

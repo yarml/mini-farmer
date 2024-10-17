@@ -3,7 +3,6 @@ use std::f32::consts::PI;
 use super::{daycycle::DayCycle, player::Player};
 use bevy::{
   app::{App, Plugin, Startup, Update},
-  color::Color,
   math::Vec3,
   prelude::{
     Camera2d, Camera2dBundle, Commands, Component, Query, Res, Transform, With,
@@ -13,8 +12,6 @@ use bevy::{
   utils::default,
 };
 use bevy_light_2d::light::AmbientLight2d;
-
-const SUNSET_COLOR: Color = Color::linear_rgb(1., 0.654901961, 0.223529412);
 
 #[derive(Component)]
 pub struct MainCamera;

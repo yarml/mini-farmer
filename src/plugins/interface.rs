@@ -1,7 +1,8 @@
 use super::{
   camera::MainCamera,
-  grass::{Arability, Grass, GrassIndex},
+  grass::{Arability, Farmland, Grass},
   tools::Tool,
+  world::{TileType, WorldIndex},
 };
 use bevy::{
   app::{App, Plugin, Startup, Update},
@@ -100,12 +101,12 @@ fn setup(mut commands: Commands, server: Res<AssetServer>) {
 
 fn update_arability(
   interface: Res<Interface>,
-  grass_index: Res<GrassIndex>,
+  world_index: Res<WorldIndex>,
   mut q_texts: Query<(&mut Text, &mut Visibility), With<ArabilityText>>,
   q_arability: Query<&Arability, With<Grass>>,
 ) {
   let (mut texts, mut visibility) = q_texts.single_mut();
-  match interface.selected_grass(&grass_index).map(|grass_entity| {
+  match interface.selected_grass(&world_index).map(|grass_entity| {
     format!(
       "{v}%",
       v = (q_arability
@@ -156,21 +157,28 @@ fn update_cursor(
   }
 }
 
-fn update_tool() {}
-
 fn tool_activate(
   tool: Res<Tool>,
   interface: Res<Interface>,
-  grass_index: Res<GrassIndex>,
   mouse: Res<ButtonInput<MouseButton>>,
+  world_index: Res<WorldIndex>,
+  mut q_grass: Query<Option<&mut Farmland>, With<Grass>>,
   mut commands: Commands,
 ) {
   if mouse.pressed(MouseButton::Left) {
-    if let Some(grass_entity) = interface
-      .selected_grass(&grass_index)
-      .map(|selected_grass| commands.entity(selected_grass))
+    if let Some((commands, farmland)) = interface
+      .selected_grass(&world_index)
+      .map(|selected_grass| {
+        (
+          commands.entity(selected_grass),
+          q_grass.get_mut(selected_grass).ok(),
+        )
+      })
     {
-      tool.activate(grass_entity);
+      let Some(farmland) = farmland else {
+        return;
+      };
+      tool.activate(commands, farmland);
     }
   }
 }
@@ -178,16 +186,16 @@ fn tool_activate(
 fn tool_deactivate(
   tool: Res<Tool>,
   interface: Res<Interface>,
-  grass_index: Res<GrassIndex>,
   mouse: Res<ButtonInput<MouseButton>>,
+  world_index: Res<WorldIndex>,
   mut commands: Commands,
 ) {
   if mouse.pressed(MouseButton::Right) {
-    if let Some(grass_entity) = interface
-      .selected_grass(&grass_index)
+    if let Some(commands) = interface
+      .selected_grass(&world_index)
       .map(|selected_grass| commands.entity(selected_grass))
     {
-      tool.deactivate(grass_entity);
+      tool.deactivate(commands);
     }
   }
 }
@@ -224,7 +232,6 @@ impl Plugin for InterfacePlugin {
           update_cursor,
           update_arability,
           update_selector,
-          update_tool,
           tool_activate,
           tool_deactivate,
           tool_cycle,
@@ -244,8 +251,11 @@ impl Interface {
   pub fn selector_pos(&self) -> Vec2 {
     (self.cursor / 16.).ceil() * 16. - 8.
   }
-  pub fn selected_grass(&self, grass_index: &GrassIndex) -> Option<Entity> {
+  pub fn selected_grass(&self, world_index: &WorldIndex) -> Option<Entity> {
     let curs_coords = self.cursor_grid_coords();
-    grass_index.get(curs_coords)
+    world_index
+      .get(curs_coords)
+      .filter(|(_, typ)| *typ == TileType::Grass)
+      .map(|(ent, _)| ent)
   }
 }

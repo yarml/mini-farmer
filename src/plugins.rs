@@ -7,5 +7,6 @@ pub mod grass;
 pub mod housing;
 pub mod interface;
 pub mod player;
+pub mod road;
 pub mod tools;
 pub mod world;

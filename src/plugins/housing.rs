@@ -2,19 +2,27 @@ use avian2d::prelude::{Collider, RigidBody};
 use bevy::{
   app::{App, Plugin},
   color::Color,
-  prelude::Bundle,
+  prelude::{Bundle, Component},
   utils::default,
 };
 use bevy_ecs_ldtk::{app::LdtkIntCellAppExt, LdtkIntCell};
 use bevy_light_2d::light::PointLight2d;
 
+use super::world::TileType;
+
 pub struct HousingPlugin;
 
 impl Plugin for HousingPlugin {
   fn build(&self, app: &mut App) {
-    app.register_ldtk_int_cell_for_layer::<HouseBundle>("worldmap", 3);
+    app.register_ldtk_int_cell_for_layer::<HouseBundle>(
+      "worldmap",
+      TileType::Housing.index(),
+    );
   }
 }
+
+#[derive(Component)]
+pub struct House;
 
 #[derive(Bundle, LdtkIntCell)]
 struct HouseBundle {
